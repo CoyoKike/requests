@@ -289,7 +289,7 @@ $("fNew").addEventListener("submit",async ev=>{
   const email=$("nEmail").value.trim(), title=$("nTitle").value.trim();
   if(!/^\S+@\S+\.\S+$/.test(email)) return show($("nErr"),"Please enter your work email.");
   if(!title) return show($("nErr"),"Please give your request a short title.");
-  busy($("nSend"),true,"Sendingâ€¦");
+  busy($("nSend"),true,"Sending…");
   try{
     const file=await readFile($("nFile"));
     stopListening(true);
@@ -401,7 +401,7 @@ async function sayToAssistant(text){
   const email=$("tEmail").value.trim();
   if(!/^\S+@\S+\.\S+$/.test(email)){ handsFree=false; show($("tErr"),"Please enter your work email first."); $("tEmail").focus(); return; }
   const me={who:"You",me:true,text}; talk.log.push(me); bubble(me); $("tText").value="";
-  const wait=bubble({who:"Assistant",text:"Thinkingâ€¦",wait:true});
+  const wait=bubble({who:"Assistant",text:"Thinking…",wait:true});
   busy($("tSend"),true); $("tMic").disabled=true;
   try{
     const r=await call("agentTurn",{email,text,convo:talk.convo,website:$("nSite").value});
@@ -420,7 +420,7 @@ async function sayToAssistant(text){
 }
 function talkListen(){
   const m=$("tMic"); m.setAttribute("aria-pressed","true"); m.setAttribute("aria-label","Stop talking");
-  $("tText").placeholder="Listeningâ€¦";
+  $("tText").placeholder="Listening…";
   listen({onText:(f,i)=>{ $("tText").value=f+i; },
     onEnd:(f,cancelled)=>{ m.setAttribute("aria-pressed","false"); m.setAttribute("aria-label","Talk"); drawTalk();
       if(cancelled) return;
@@ -440,7 +440,7 @@ $("dSend").onclick=async()=>{
   if(!/^\S+@\S+\.\S+$/.test(email)) return show($("dErr"),"Please enter your work email.");
   if(!title) return show($("dErr"),"Please give your request a short title.");
   stopListening(true); if(synth) synth.cancel(); handsFree=false;
-  busy($("dSend"),true,"Sendingâ€¦");
+  busy($("dSend"),true,"Sending…");
   try{
     const r=await call("submitRequest",{email,title,details:$("dDetails").value,website:$("nSite").value,convo:talk.convo});
     if(!r.internal){ store.del("cpTalk"); newTalk(); }
@@ -475,7 +475,7 @@ $("fCode").addEventListener("submit",async ev=>{
   ev.preventDefault(); show($("mErr"),"");
   const email=$("mEmail").value.trim();
   if(!/^\S+@\S+\.\S+$/.test(email)) return show($("mErr"),"Please enter your work email.");
-  busy($("mAsk"),true,"Sendingâ€¦");
+  busy($("mAsk"),true,"Sending…");
   try{
     const r=await call("requestCode",email);
     store.set("cpEmail",email); store.set("cpPend",JSON.stringify({email,until:Date.now()+570000}));
@@ -489,7 +489,7 @@ $("fVerify").addEventListener("submit",async ev=>{
   ev.preventDefault(); show($("mErr"),"");
   const code=$("mCode").value.replace(/\D/g,"");
   if(code.length!==6) return show($("mErr"),"Please type the 6 digit code from the email.");
-  busy($("mOpen"),true,"Checkingâ€¦");
+  busy($("mOpen"),true,"Checking…");
   try{
     const r=await call("verifyCode",$("mEmail").value.trim(),code);
     sess={token:r.token,email:r.email,org:r.org,until:Date.now()+r.seconds*1000-30000};
@@ -501,7 +501,7 @@ $("fVerify").addEventListener("submit",async ev=>{
 
 async function loadList(){
   const box=$("mList"); box.hidden=false; $("mOne").hidden=true;
-  box.innerHTML=`<p class="empty">Loading your requestsâ€¦</p>`;
+  box.innerHTML=`<p class="empty">Loading your requests…</p>`;
   try{ cache=await call("myRequests",sess.token); drawList(); }
   catch(e){ if(ended(e)) return signedOut(errText(e)); box.innerHTML=`<p class="msg bad">${esc(errText(e))}</p>`; }
 }
@@ -541,7 +541,7 @@ function drawList(){
   const period=first.y===last.y?`${MON[first.m]} to ${MON[last.m]} ${last.y}`:`${MON[first.m]} ${first.y} to ${MON[last.m]} ${last.y}`;
   const scope=cache.org?`${esc(cache.org)} requests`:"Your requests";
   box.innerHTML=`
-    <div class="who"><p>Signed in as <b>${esc(cache.email)}</b>${cache.org?` Â· ${esc(cache.org)}`:""}</p><button class="btn link" type="button" id="mOut">Sign out</button></div>
+    <div class="who"><p>Signed in as <b>${esc(cache.email)}</b>${cache.org?` · ${esc(cache.org)}`:""}</p><button class="btn link" type="button" id="mOut">Sign out</button></div>
     <div class="kpis" style="margin:16px 0">
       <div class="kpi"><b>${open}</b><span>Open now</span></div>
       <div class="kpi"><b>${done.length}</b><span>Finished, all time</span></div>
@@ -560,11 +560,11 @@ function drawList(){
 }
 
 function thread(list){
-  return list.length?list.map(c=>`<div class="bub${c.me?" me":""}"><small>${esc(c.who)} Â· ${day(c.at)}</small><p>${esc(c.text)}</p></div>`).join(""):`<p class="small">No replies yet.</p>`;
+  return list.length?list.map(c=>`<div class="bub${c.me?" me":""}"><small>${esc(c.who)} · ${day(c.at)}</small><p>${esc(c.text)}</p></div>`).join(""):`<p class="small">No replies yet.</p>`;
 }
 async function openOne(n){
   const one=$("mOne"); $("mList").hidden=true; one.hidden=false;
-  one.innerHTML=`<p class="empty">Openingâ€¦</p>`; scrollTo({top:$("pMine").offsetTop-16,behavior:"smooth"});
+  one.innerHTML=`<p class="empty">Opening…</p>`; scrollTo({top:$("pMine").offsetTop-16,behavior:"smooth"});
   let r;
   try{ r=await call("requestDetail",sess.token,n); }
   catch(e){ if(ended(e)) return signedOut(errText(e)); one.innerHTML=`<button class="back" type="button" id="oBack">Back</button><p class="msg bad">${esc(errText(e))}</p>`; $("oBack").onclick=drawList; return; }
@@ -585,7 +585,7 @@ async function openOne(n){
   $("oBack").onclick=drawList;
   if(!canReply) return;
   $("fReply").addEventListener("submit",async ev=>{
-    ev.preventDefault(); show($("oErr"),""); busy($("oSend"),true,"Sendingâ€¦");
+    ev.preventDefault(); show($("oErr"),""); busy($("oSend"),true,"Sending…");
     try{
       const file=await readFile($("oFile"));
       const res=await call("addReply",sess.token,n,$("oText").value,file);
@@ -599,6 +599,26 @@ async function openOne(n){
 /* backdrop: a random painting from the picked country every 20 s (same list as the Work Cases page, work appropriate only) */
 const WM="https:/\/upload.wikimedia.org/wikipedia/commons/";
 const ART={
+  "Bolivia":[
+    ["8/88/Pentecost%C3%A9s_-_Melchor_P%C3%A9rez_Holgu%C3%ADn.jpg","center 35%","Melchor Pérez de Holguín","Pentecostés","18th century"],
+    ["f/fc/San_Mateo_Evangelista_%28media_figura%2C_siglo_XVIII%29_-_Melchor_P%C3%A9rez_Holgu%C3%ADn.jpg","center 25%","Melchor Pérez de Holguín","San Mateo Evangelista","18th century"],
+    ["c/c6/Saint_Mark_by_Melchor_P%C3%A9rez_Holgu%C3%ADn%2C_c._1714.jpg","center 25%","Melchor Pérez de Holguín","San Marcos Evangelista","c. 1714"],
+    ["5/50/Entrada_Virrey_Arzobispo_Morcillo.jpg","center","Melchor Pérez de Holguín","Entrada del virrey arzobispo Morcillo en Potosí","1716"],
+    ["c/c7/Panorama_Villa_Imperial_de_Potos%C3%AD_en_1758_por_Gaspar_de_Berrio.jpg","center","Gaspar Miguel de Berrío","Cerro Rico e Imperial Villa de Potosí","1758"]],
+  "Colombia":[
+    ["e/ea/Horizonte%2C_Francisco_Antonio_Cano%2C_1913.jpg","center 30%","Francisco Antonio Cano","Horizontes","1913"],
+    ["thumb/a/a5/Gregorio_V%C3%A1squez_de_Arce_y_Ceballos_-_Autumn_-_17th-century.jpg/3840px-Gregorio_V%C3%A1squez_de_Arce_y_Ceballos_-_Autumn_-_17th-century.jpg","center 40%","Gregorio Vásquez de Arce y Ceballos","Alegoría del otoño","17th century"],
+    ["thumb/e/e0/Gregorio_Vasquez_de_Arce_y_Ceballos_-_Joachim_of_Fiore_shows_the_portraits_of_Saint_Dominic_de_Guzm%C3%A1n_and_Saint_Francis_of_Assisi_-_1680.jpg/3840px-Gregorio_Vasquez_de_Arce_y_Ceballos_-_Joachim_of_Fiore_shows_the_portraits_of_Saint_Dominic_de_Guzm%C3%A1n_and_Saint_Francis_of_Assisi_-_1680.jpg","center","Gregorio Vásquez de Arce y Ceballos","Joaquín de Fiore con los retratos de Santo Domingo y San Francisco","1680"],
+    ["thumb/2/27/Sagrada_Familia_siglo_XVII.jpg/3840px-Sagrada_Familia_siglo_XVII.jpg","center 40%","Gregorio Vásquez de Arce y Ceballos","Sagrada Familia","17th century"],
+    ["thumb/a/a9/Gregorio_Vasquez_de_Arce_y_Ceballos_-_Saint_Gertrude_the_Great.jpg/3840px-Gregorio_Vasquez_de_Arce_y_Ceballos_-_Saint_Gertrude_the_Great.jpg","center","Gregorio Vásquez de Arce y Ceballos","Santa Gertrudis la Magna","17th century"]],
+  "Dominican Republic":[
+    ["thumb/e/eb/Mesdemoiselles_Chass%C3%A9riau%2C_dit_aussi_Les_deux_soeurs_-_Th%C3%A9odore_Chass%C3%A9riau_-_Mus%C3%A9e_du_Louvre_Peintures_RF_2214.jpg/3840px-Mesdemoiselles_Chass%C3%A9riau%2C_dit_aussi_Les_deux_soeurs_-_Th%C3%A9odore_Chass%C3%A9riau_-_Mus%C3%A9e_du_Louvre_Peintures_RF_2214.jpg","center 25%","Théodore Chassériau","Les deux sœurs","1843"],
+    ["4/49/Th%C3%A9odore_Chass%C3%A9riau_-_Woman_and_Little_Girl_of_Constantine_with_a_Gazelle_-_Google_Art_Project.jpg","center","Théodore Chassériau","Femme et fillette de Constantine à la gazelle","1849"],
+    ["thumb/4/4b/Othello_et_Desd%C3%A9mone_%C3%A0_Venise_-_Th%C3%A9odore_Chass%C3%A9riau_-_Mus%C3%A9e_du_Louvre_Peintures_RF_3897.jpg/3840px-Othello_et_Desd%C3%A9mone_%C3%A0_Venise_-_Th%C3%A9odore_Chass%C3%A9riau_-_Mus%C3%A9e_du_Louvre_Peintures_RF_3897.jpg","center 35%","Théodore Chassériau","Othello et Desdémone à Venise","1850"],
+    ["9/96/Th%C3%A9odore_Chass%C3%A9riau_-_Portrait_de_l%27artiste.jpg","center 25%","Théodore Chassériau","Autoportrait","1835"],
+    ["1/1f/Scene_in_the_Jewish_Quarter_of_Constantine_MET_DT1038.jpg","center 40%","Théodore Chassériau","Scene in the Jewish Quarter of Constantine","1851"],
+    ["4/4c/Juives_au_balcon%2C_Alger_-_Th%C3%A9odore_Chass%C3%A9riau_-_Mus%C3%A9e_du_Louvre_Peintures_RF_3882.jpg","center 40%","Théodore Chassériau","Juives au balcon, Alger","1849"],
+    ["4/44/Th%C3%A9odore_Chass%C3%A9riau_-_Portrait_of_an_Italian_Woman_-_1959-D_-_Museum_of_Fine_Arts_Ghent_%28MSK%29.jpg","center 30%","Théodore Chassériau","Portrait d'une Italienne","c. 1840"]],
   "France":[
     ["thumb/5/59/Monet_-_Impression%2C_Sunrise.jpg/3840px-Monet_-_Impression%2C_Sunrise.jpg","center","Claude Monet","Impression, soleil levant","1872"],
     ["thumb/a/a5/Claude_Monet_-_Springtime_-_Google_Art_Project.jpg/3840px-Claude_Monet_-_Springtime_-_Google_Art_Project.jpg","center","Claude Monet","Springtime","1872"],
@@ -609,6 +629,12 @@ const ART={
     ["thumb/6/6f/Renoir%2C_Pierre-Auguste_-_Dance_at_Le_Moulin_de_la_Galette%2C_1876.jpg/3840px-Renoir%2C_Pierre-Auguste_-_Dance_at_Le_Moulin_de_la_Galette%2C_1876.jpg","center 30%","Pierre-Auguste Renoir","Dance at Le Moulin de la Galette","1876"],
     ["thumb/0/07/Camille_Pissarro_-_The_Seine_at_Bougival_-_Google_Art_Project.jpg/3840px-Camille_Pissarro_-_The_Seine_at_Bougival_-_Google_Art_Project.jpg","center","Camille Pissarro","The Seine at Bougival","1870"],
     ["f/ff/Camille_Pissarro_-_Boulevard_Montmartre%2C_Spring_-_Google_Art_Project.jpg","center","Camille Pissarro","Boulevard Montmartre, Spring","1897"]],
+  "Haiti":[
+    ["thumb/8/82/John_James_Audubon%2C_Farmyard_Fowls%2C_c._1827%2C_NGA_39766.jpg/3840px-John_James_Audubon%2C_Farmyard_Fowls%2C_c._1827%2C_NGA_39766.jpg","center","John James Audubon","Farmyard Fowls","c. 1827"],
+    ["thumb/b/b2/John_James_Audubon%2C_English_Black_Cocks%2C_1828%2C_NGA_66469.jpg/3840px-John_James_Audubon%2C_English_Black_Cocks%2C_1828%2C_NGA_66469.jpg","center","John James Audubon","English Black Cocks","1828"],
+    ["thumb/8/8d/Wild_Turkey_Cock%2C_Hen_and_Young_by_John_James_Audubon%2C1826.JPG/3840px-Wild_Turkey_Cock%2C_Hen_and_Young_by_John_James_Audubon%2C1826.JPG","center","John James Audubon","Wild Turkey Cock, Hen and Young","1826"],
+    ["b/be/John_James_Audubon%2C_Arctic_Hare%2C_c._1841%2C_NGA_39773.jpg","center","John James Audubon","Arctic Hare","c. 1841"],
+    ["1/16/Guillaume_Guillon_Letheiere_Le_serment_des_ancetres_1822.jpg","center 55%","Guillaume Guillon-Lethière","Le Serment des ancêtres","1822"]],
   "Italy":[
     ["thumb/9/90/Canaletto_-_The_Entrance_to_the_Grand_Canal%2C_Venice_-_Google_Art_Project.jpg/3840px-Canaletto_-_The_Entrance_to_the_Grand_Canal%2C_Venice_-_Google_Art_Project.jpg","center","Canaletto","The Entrance to the Grand Canal, Venice","1730"],
     ["thumb/4/4e/Canaletto_%28Giovanni_Antonio_Canal%29_-_Bacino_di_San_Marco%2C_Venice_-_Google_Art_Project.jpg/3840px-Canaletto_%28Giovanni_Antonio_Canal%29_-_Bacino_di_San_Marco%2C_Venice_-_Google_Art_Project.jpg","center","Canaletto","Bacino di San Marco, Venice","1738"],
@@ -618,16 +644,16 @@ const ART={
     ["thumb/2/25/Sandro_Botticelli_-_La_Primavera_-_Google_Art_Project.jpg/3840px-Sandro_Botticelli_-_La_Primavera_-_Google_Art_Project.jpg","center 30%","Sandro Botticelli","La Primavera","c. 1482"],
     ["thumb/7/7f/Bernardo_Bellotto_-_View_of_Warsaw_from_the_Royal_Castle_-_Google_Art_Project.jpg/3840px-Bernardo_Bellotto_-_View_of_Warsaw_from_the_Royal_Castle_-_Google_Art_Project.jpg","center","Bernardo Bellotto","View of Warsaw from the Royal Castle","1773"]],
   "Mexico":[
-    ["thumb/e/e2/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg","center 35%","JosÃ© MarÃ­a Velasco","Valle de MÃ©xico desde el cerro de Santa Isabel","1875"],
-    ["thumb/a/aa/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","CaÃ±ada de Metlac","1893"],
-    ["thumb/c/cf/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","La Alameda de MÃ©xico","1866"],
-    ["thumb/a/af/Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","Catedral de Oaxaca","1887"],
-    ["thumb/3/3e/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","El cabrero de San Ãngel","1863"],
-    ["thumb/d/df/Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg/3840px-Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg","center 30%","Saturnino HerrÃ¡n","La ofrenda","1913"],
-    ["thumb/b/b4/Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg/3840px-Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg","center","Juan Cordero","CristÃ³bal ColÃ³n en la corte de los Reyes CatÃ³licos","1850"],
-    ["thumb/e/e2/Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg/3840px-Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg","center 30%","Rodrigo GutiÃ©rrez","El Senado de Tlaxcala","1875"],
-    ["thumb/d/dc/Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg/3840px-Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg","center","JosÃ© AgustÃ­n Arrieta","Dining Table (still life)","c. 1850"],
-    ["thumb/8/82/Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg/3840px-Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg","center 40%","Eugenio Landesio","El Valle de MÃ©xico desde el cerro de Tenayo","1870"]],
+    ["thumb/e/e2/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg","center 35%","José María Velasco","Valle de México desde el cerro de Santa Isabel","1875"],
+    ["thumb/a/aa/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg","center","José María Velasco","Cañada de Metlac","1893"],
+    ["thumb/c/cf/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg","center","José María Velasco","La Alameda de México","1866"],
+    ["thumb/a/af/Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg","center","José María Velasco","Catedral de Oaxaca","1887"],
+    ["thumb/3/3e/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg","center","José María Velasco","El cabrero de San Ángel","1863"],
+    ["thumb/d/df/Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg/3840px-Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg","center 30%","Saturnino Herrán","La ofrenda","1913"],
+    ["thumb/b/b4/Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg/3840px-Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg","center","Juan Cordero","Cristóbal Colón en la corte de los Reyes Católicos","1850"],
+    ["thumb/e/e2/Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg/3840px-Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg","center 30%","Rodrigo Gutiérrez","El Senado de Tlaxcala","1875"],
+    ["thumb/d/dc/Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg/3840px-Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg","center","José Agustín Arrieta","Dining Table (still life)","c. 1850"],
+    ["thumb/8/82/Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg/3840px-Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg","center 40%","Eugenio Landesio","El Valle de México desde el cerro de Tenayo","1870"]],
   "Netherlands":[
     ["thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/3840px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg","center","Vincent van Gogh","The Starry Night","1889"],
     ["thumb/3/3e/Irises-Vincent_van_Gogh.jpg/3840px-Irises-Vincent_van_Gogh.jpg","center","Vincent van Gogh","Irises","1889"],
@@ -637,15 +663,27 @@ const ART={
     ["thumb/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg/3840px-La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg","center 35%","Rembrandt","The Night Watch","1642"],
     ["thumb/d/dd/Jacob_van_Ruisdael_-_The_Great_Forest_-_Google_Art_Project.jpg/3840px-Jacob_van_Ruisdael_-_The_Great_Forest_-_Google_Art_Project.jpg","center","Jacob van Ruisdael","The Great Forest","c. 1657"],
     ["thumb/e/e5/Jacob_van_Ruisdael_-_The_Forest_Stream_-_Google_Art_Project.jpg/3840px-Jacob_van_Ruisdael_-_The_Forest_Stream_-_Google_Art_Project.jpg","center","Jacob van Ruisdael","The Forest Stream","c. 1660"]],
+  "Peru":[
+    ["thumb/e/e3/Ignacio_Merino_-_Reading_Don_Quixote_-_Google_Art_Project.jpg/3840px-Ignacio_Merino_-_Reading_Don_Quixote_-_Google_Art_Project.jpg","center 40%","Ignacio Merino","Reading Don Quixote","1861"],
+    ["thumb/2/21/Los_frailes_atravesando_un_vado.jpg/3840px-Los_frailes_atravesando_un_vado.jpg","center","Ignacio Merino","Los frailes atravesando un vado","c. 1865"],
+    ["thumb/1/14/El_fraile_pintor_y_sus_cr%C3%ADticos.jpg/3840px-El_fraile_pintor_y_sus_cr%C3%ADticos.jpg","center","Ignacio Merino","El fraile pintor y sus críticos","1865"],
+    ["thumb/b/bf/Crist%C3%B3bal_Col%C3%B3n_y_su_hijo_Diego_solicitan_hospitalidad_en_el_convento_franciscano_de_Santa_Mar%C3%ADa_de_La_R%C3%A1bida.jpg/3840px-Crist%C3%B3bal_Col%C3%B3n_y_su_hijo_Diego_solicitan_hospitalidad_en_el_convento_franciscano_de_Santa_Mar%C3%ADa_de_La_R%C3%A1bida.jpg","center","Ignacio Merino","Colón y su hijo Diego en La Rábida","1857"],
+    ["thumb/9/9d/La_apertura_del_testamento.jpg/3840px-La_apertura_del_testamento.jpg","center","Ignacio Merino","La apertura del testamento","1864"]],
+  "Puerto Rico":[
+    ["thumb/7/78/La_escuela_del_Maestro_Cordero_by_Francisco_Oller.jpg/3840px-La_escuela_del_Maestro_Cordero_by_Francisco_Oller.jpg","center","Francisco Oller","La escuela del maestro Rafael Cordero","c. 1891"],
+    ["thumb/d/d4/Campeche%2C_Jos%C3%A9_-_The_Daughters_of_Governor_Ram%C3%B3n_de_Castro_-_Google_Art_Project.jpg/3840px-Campeche%2C_Jos%C3%A9_-_The_Daughters_of_Governor_Ram%C3%B3n_de_Castro_-_Google_Art_Project.jpg","center 25%","José Campeche","Las hijas del gobernador Ramón de Castro","1797"],
+    ["f/ff/Colonel_Francisco_Enrique_Contreras%2C_by_Francisco_Oller.jpg","center 20%","Francisco Oller","Retrato del coronel Francisco Enrique Contreras","1880"],
+    ["3/3d/Francisco_Oller_%22La_Hacienda_Buenavista%22.jpg","center 60%","Francisco Oller","La Hacienda Buenavista, Ponce","19th century"],
+    ["thumb/b/b1/Maria-Dolores-Martinez.jpg/3840px-Maria-Dolores-Martinez.jpg","center 20%","José Campeche","Doña María de los Dolores Martínez de Carvajal","1792"]],
   "Spain":[
-    ["thumb/b/b3/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","El baÃ±o del caballo","1909"],
-    ["thumb/2/25/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","Saltando a la comba","1907"],
-    ["thumb/8/84/Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","InstantÃ¡nea, Biarritz","1906"],
-    ["b/b7/Joaqu%C3%ADn_Sorolla_-_Children_Looking_for_Shellfish_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","NiÃ±os buscando mariscos","1919"],
+    ["thumb/b/b3/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg","center","Joaquín Sorolla","El baño del caballo","1909"],
+    ["thumb/2/25/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg","center","Joaquín Sorolla","Saltando a la comba","1907"],
+    ["thumb/8/84/Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg","center","Joaquín Sorolla","Instantánea, Biarritz","1906"],
+    ["b/b7/Joaqu%C3%ADn_Sorolla_-_Children_Looking_for_Shellfish_-_Google_Art_Project.jpg","center","Joaquín Sorolla","Niños buscando mariscos","1919"],
     ["thumb/e/ed/Goya_y_Lucientes%2C_Francisco_-_The_Threshing_Floor_-_Google_Art_Project.jpg/3840px-Goya_y_Lucientes%2C_Francisco_-_The_Threshing_Floor_-_Google_Art_Project.jpg","center","Francisco de Goya","La era","1786"],
-    ["thumb/d/dd/Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg/3840px-Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg","center","Francisco de Goya","Auto de fe de la InquisiciÃ³n","1812"],
-    ["5/5f/Vel%C3%A1zquez_-_La_F%C3%A1bula_de_Aracne_o_Las_Hilanderas_%28Museo_del_Prado%2C_1657-58%29.jpg","center 30%","Diego VelÃ¡zquez","Las hilanderas","c. 1657"],
-    ["8/8e/Velazquez-The_Surrender_of_Breda.jpg","center 30%","Diego VelÃ¡zquez","La rendiciÃ³n de Breda","c. 1635"]],
+    ["thumb/d/dd/Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg/3840px-Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg","center","Francisco de Goya","Auto de fe de la Inquisición","1812"],
+    ["5/5f/Vel%C3%A1zquez_-_La_F%C3%A1bula_de_Aracne_o_Las_Hilanderas_%28Museo_del_Prado%2C_1657-58%29.jpg","center 30%","Diego Velázquez","Las hilanderas","c. 1657"],
+    ["8/8e/Velazquez-The_Surrender_of_Breda.jpg","center 30%","Diego Velázquez","La rendición de Breda","c. 1635"]],
   "United Kingdom":[
     ["thumb/9/94/Turner%2C_J._M._W._-_The_Fighting_T%C3%A9m%C3%A9raire_tugged_to_her_last_Berth_to_be_broken.jpg/3840px-Turner%2C_J._M._W._-_The_Fighting_T%C3%A9m%C3%A9raire_tugged_to_her_last_Berth_to_be_broken.jpg","center","J. M. W. Turner","The Fighting Temeraire","1839"],
     ["thumb/b/be/Joseph_Mallord_William_Turner_-_The_Sun_of_Venice_Going_to_Sea_-_Google_Art_Project.jpg/3840px-Joseph_Mallord_William_Turner_-_The_Sun_of_Venice_Going_to_Sea_-_Google_Art_Project.jpg","center","J. M. W. Turner","The Sun of Venice Going to Sea","1843"],
