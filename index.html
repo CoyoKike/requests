@@ -1,0 +1,699 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Requests</title>
+<base target="_top">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Client request portal (#209). Same look as the Work Cases page: warm charcoal, cream ink, one gold accent,
+   flat glass panels with hairlines, paintings from the picked country behind the page. */
+:root{
+  --bg:#0d0d10; --ink:#f5f1ea; --ink-2:rgba(245,241,234,.74); --muted:rgba(245,241,234,.52);
+  --glass:rgba(16,16,20,.62); --glass-2:rgba(255,255,255,.07); --line:rgba(245,241,234,.1);
+  --accent:#e8b04b; --accent-2:#f0d8a8; --on-accent:#16120a;
+  --s-open:#a39d8e; --s-prog:#e8b04b; --s-wait:#d98a6a; --s-hold:#7f97c4; --s-done:#7fae8f; --s-skip:#8a857b; --s-bad:#e5675b;
+  --sans:'Inter',system-ui,-apple-system,"Segoe UI",sans-serif; --serif:'Cormorant Garamond',Georgia,serif;
+  color-scheme:dark;
+}
+[hidden]{display:none!important}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{background:var(--bg)}
+body{margin:0;color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.5;-webkit-font-smoothing:antialiased;
+  padding:0 max(16px,env(safe-area-inset-right,0px)) 60px max(16px,env(safe-area-inset-left,0px));overflow-x:hidden}
+button{font:inherit;color:inherit}
+
+/* backdrop: paintings, slow drift, crossfade every 20 s, darkened so the panels stay readable */
+.art{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.art .pt{position:absolute;inset:-3%;background-size:cover;background-position:center;opacity:0;transition:opacity 3.5s ease;
+  filter:saturate(1.05) brightness(.8);animation:drift 40s ease-in-out infinite alternate}
+.art .pt.on{opacity:1}
+.art .pt+.pt{animation-delay:-20s}
+.art::after{content:"";position:absolute;inset:0;background:
+  radial-gradient(ellipse at 50% 30%,transparent 0,color-mix(in srgb,var(--bg) 30%,transparent) 60%,color-mix(in srgb,var(--bg) 70%,transparent) 100%),
+  linear-gradient(color-mix(in srgb,var(--bg) 15%,transparent),color-mix(in srgb,var(--bg) 55%,transparent) 60%,color-mix(in srgb,var(--bg) 75%,transparent))}
+@keyframes drift{from{transform:translate3d(0,0,0)}to{transform:translate3d(-1.5%,-1%,0)}}
+@media (prefers-reduced-motion:reduce){.art .pt{animation:none;transition:none}}
+.credit{position:relative;z-index:1;margin:28px 0 0;font-size:12.5px;line-height:1.35;color:var(--ink-2);text-align:center;transition:opacity 1.2s ease;text-shadow:0 1px 12px var(--bg)}
+.credit b{display:block;font-family:var(--serif);font-size:17px;font-weight:600;font-style:italic;color:var(--ink)}
+.credit.out{opacity:0}
+@media (min-width:1000px){.credit{position:fixed;z-index:2;margin:0;left:20px;bottom:16px;max-width:300px;text-align:left;padding:10px 14px;border-radius:14px;
+  background:color-mix(in srgb,var(--bg) 60%,transparent);border:1px solid var(--line)}}
+
+.wrap{position:relative;z-index:1;max-width:680px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+
+/* hero */
+.hero{min-height:min(40vh,360px);display:flex;flex-direction:column;justify-content:flex-end;padding:20px 0 6px}
+.artsel{align-self:flex-start;margin-bottom:auto;position:relative;display:inline-flex;align-items:center;gap:8px;padding:0 0 0 14px;border-radius:999px;
+  background:var(--glass);border:1px solid var(--line);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);font-size:13px;color:var(--ink-2);white-space:nowrap}
+.artsel select{-webkit-appearance:none;appearance:none;border:0;background:none;margin:0;cursor:pointer;font:600 14px/1 var(--sans);color:var(--ink);padding:10px 34px 10px 0;width:auto}
+.artsel select:focus{outline:none}
+.artsel select option{background:#16161a;color:#f5f1ea}
+.artsel svg{position:absolute;right:13px;width:12px;height:12px;fill:none;stroke:var(--ink-2);stroke-width:2.4;pointer-events:none}
+.artsel:focus-within{outline:2px solid var(--accent-2);outline-offset:3px}
+.hero h1{margin:40px 0 0;font-family:var(--serif);font-size:clamp(48px,12vw,80px);line-height:1;font-weight:500;letter-spacing:-.02em;text-shadow:0 2px 30px var(--bg)}
+.hero h1 em{font-style:italic;color:var(--accent-2)}
+.hero p{margin:12px 0 0;font-size:18px;line-height:1.45;color:var(--ink);opacity:.88;text-shadow:0 1px 18px var(--bg);max-width:34em}
+
+/* switch between the two parts */
+.seg{display:grid;grid-template-columns:1fr 1fr;padding:4px;border-radius:999px;background:var(--glass);border:1px solid var(--line);
+  -webkit-backdrop-filter:blur(24px);backdrop-filter:blur(24px)}
+.seg button{all:unset;cursor:pointer;text-align:center;padding:11px 10px;border-radius:999px;font-weight:600;font-size:15px;color:var(--ink-2)}
+.seg button[aria-selected="true"]{background:var(--glass-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.seg button:focus-visible{outline:2px solid var(--accent-2)}
+
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:20px;padding:22px;-webkit-backdrop-filter:blur(28px) saturate(140%);backdrop-filter:blur(28px) saturate(140%)}
+h2{margin:0 0 14px;font-size:11.5px;font-weight:600;letter-spacing:.14em;color:rgba(240,216,168,.75);text-transform:uppercase}
+h3{margin:0;font-family:var(--serif);font-size:28px;font-weight:600;line-height:1.15;letter-spacing:-.01em}
+.note{margin:0;font-size:14px;color:var(--ink-2)}
+.small{font-size:13px;color:var(--muted)}
+
+form{display:flex;flex-direction:column;gap:14px;margin:0}
+.field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:600;color:var(--muted)}
+.field span em{font-style:normal;font-weight:400}
+input,textarea{font:inherit;font-size:16px;color:var(--ink);background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:12px;padding:12px 14px;width:100%;min-width:0}
+textarea{min-height:130px;resize:vertical;line-height:1.45}
+input::placeholder,textarea::placeholder{color:rgba(245,241,234,.35)}
+input:focus-visible,textarea:focus-visible{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+input[type=file]{padding:10px 12px;font-size:14px;color:var(--ink-2)}
+input[type=file]::file-selector-button{font:600 13px var(--sans);color:var(--ink);background:var(--glass-2);border:1px solid var(--line);border-radius:999px;padding:7px 14px;margin-right:12px;cursor:pointer}
+.code{font-size:26px;letter-spacing:.4em;text-align:center;font-variant-numeric:tabular-nums}
+.trap{position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden}
+.privacy{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;border-radius:12px;border:1px solid var(--line);font-size:14px;color:var(--ink-2)}
+.privacy svg{flex:none;width:18px;height:18px;margin-top:1px;fill:none;stroke:var(--accent-2);stroke-width:1.7}
+.row-btn{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.btn{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:13px 22px;border-radius:999px;font-weight:600;font-size:15.5px;
+  background:var(--accent);color:var(--on-accent)}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.link{padding:6px 0;background:none;color:var(--accent-2);font-weight:500;font-size:14px}
+.btn[disabled]{opacity:.5;cursor:default}
+.btn:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px}
+.msg{margin:0;padding:11px 14px;border-radius:12px;font-size:14.5px;border:1px solid var(--line)}
+.msg.bad{border-color:color-mix(in srgb,var(--s-bad) 55%,transparent);color:#f4c0b9}
+.msg.ok{border-color:color-mix(in srgb,var(--s-done) 55%,transparent)}
+.test{border-style:dashed;color:var(--accent-2)}
+.done-box{display:flex;flex-direction:column;gap:12px}
+.done-box b.big{font-family:var(--serif);font-size:30px;font-weight:600;line-height:1.1}
+
+/* my requests */
+.who{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.who p{margin:0;font-size:14px;color:var(--ink-2);overflow-wrap:anywhere}
+.who p b{color:var(--ink);font-weight:600}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.kpi{padding:14px;border-radius:14px;border:1px solid var(--line)}
+.kpi b{display:block;font-family:var(--serif);font-size:34px;font-weight:600;line-height:1;font-variant-numeric:lining-nums tabular-nums}
+.kpi span{display:block;margin-top:6px;font-size:12.5px;color:var(--muted);line-height:1.3}
+.chart svg{display:block;width:100%;height:auto;overflow:visible}
+.chart text{font-family:var(--sans);fill:var(--muted);font-size:11px}
+.chart .v{fill:var(--ink-2);font-size:10.5px;font-weight:600}
+.chart .grid{stroke:var(--line);stroke-width:1}
+@media (max-width:600px){.chart text{font-size:21px}.chart .v{font-size:20px}}
+.legend{display:flex;gap:16px;margin:10px 0 0;font-size:13px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:6px;vertical-align:-1px}
+.list{display:flex;flex-direction:column}
+.req{all:unset;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:4px 14px;align-items:center;padding:13px 4px;border-top:1px solid var(--line)}
+.req:first-child{border-top:0}
+.req:hover b{color:var(--accent-2)}
+.req:focus-visible{outline:2px solid var(--accent-2);outline-offset:2px;border-radius:8px}
+.req b{font-weight:600;font-size:15.5px;line-height:1.3;overflow-wrap:anywhere;grid-column:1;grid-row:1}
+.req span{grid-column:1;font-size:13px;color:var(--muted)}
+.req .st{grid-column:2;grid-row:1/3}
+.st{grid-row:1/span 2;grid-column:2;display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:600;color:var(--ink-2);white-space:nowrap}
+.st i{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.empty{padding:6px 0;color:var(--ink-2);font-size:15px}
+
+/* one request */
+.back{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;font-size:14px;color:var(--accent-2);margin-bottom:14px}
+.back svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;margin:10px 0 16px;font-size:13.5px;color:var(--muted)}
+.text{white-space:pre-wrap;overflow-wrap:anywhere;font-size:15.5px;line-height:1.55;margin:0;padding:14px 16px;border-radius:14px;border:1px solid var(--line)}
+.thread{display:flex;flex-direction:column;gap:10px;margin:18px 0}
+.bub{max-width:88%;padding:11px 14px;border-radius:16px;border:1px solid var(--line);font-size:15px}
+.bub.me{align-self:flex-end;background:rgba(232,176,75,.09);border-color:rgba(232,176,75,.28)}
+.bub small{display:block;font-size:12px;color:var(--muted);margin-bottom:4px}
+.bub p{margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+.closed-note{font-size:14px;color:var(--muted);margin:0}
+
+/* write it or talk it through */
+.mode{display:inline-grid;grid-template-columns:1fr 1fr;padding:3px;margin:0 0 18px;border-radius:999px;border:1px solid var(--line)}
+.mode button{all:unset;cursor:pointer;text-align:center;padding:8px 16px;border-radius:999px;font-weight:600;font-size:14px;color:var(--ink-2)}
+.mode button[aria-pressed="true"]{background:var(--glass-2);color:var(--ink);box-shadow:inset 0 0 0 1px var(--line)}
+.mode button:focus-visible{outline:2px solid var(--accent-2)}
+.labrow{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.dict{all:unset;cursor:pointer;display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:999px;border:1px solid var(--line);font-size:13px;font-weight:600;color:var(--ink-2)}
+.dict svg,.mic svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8}
+.dict[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.dict:focus-visible,.mic:focus-visible{outline:2px solid var(--accent-2);outline-offset:3px}
+.talk{display:flex;flex-direction:column;gap:14px}
+.chat{display:flex;flex-direction:column;gap:10px;max-height:min(52vh,460px);overflow-y:auto;padding:2px}
+.bub.wait p{color:var(--muted)}
+.say{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
+.say textarea{min-height:52px;height:52px}
+.say .acts{display:flex;gap:8px;align-items:center}
+.mic{all:unset;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;border:1px solid var(--line);background:var(--glass-2);color:var(--ink)}
+.mic svg{width:20px;height:20px}
+.mic[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+.draft{display:flex;flex-direction:column;gap:14px;padding-top:18px;border-top:1px solid var(--line)}
+.draft h2{margin:0}
+.small a{color:var(--accent-2)}
+@media (max-width:420px){.panel{padding:18px}.kpi b{font-size:28px}.bub{max-width:96%}}
+</style>
+</head>
+<body>
+<div class="art" id="art" aria-hidden="true"><div class="pt"></div><div class="pt"></div></div>
+
+<div class="wrap">
+  <header class="hero">
+    <label class="artsel">Paintings from<select id="artC" aria-label="Paintings from which country"></select><svg viewBox="0 0 12 12" aria-hidden="true"><path d="M2 4l4 4 4-4"/></svg></label>
+    <h1>Send a <em>request</em></h1>
+    <p>Tell me what you need. I read every request and answer here.</p>
+  </header>
+
+  <div class="seg" role="tablist" aria-label="Requests">
+    <button type="button" role="tab" id="tNew" aria-selected="true" aria-controls="pNew">New request</button>
+    <button type="button" role="tab" id="tMine" aria-selected="false" aria-controls="pMine">My requests</button>
+  </div>
+
+  <!-- 1. send a request: email only, no code -->
+  <section class="panel" id="pNew" role="tabpanel" aria-labelledby="tNew">
+    <div class="mode" id="nMode" role="group" aria-label="How to send your request" hidden>
+      <button type="button" id="mdWrite" aria-pressed="true">Write it</button><button type="button" id="mdTalk" aria-pressed="false">Talk it through</button>
+    </div>
+    <form id="fNew" novalidate>
+      <label class="field">Your work email<input type="email" id="nEmail" autocomplete="email" inputmode="email" required placeholder="name@yourorg.org"></label>
+      <label class="field">Short title<input type="text" id="nTitle" maxlength="200" required placeholder="For example: Monthly report is missing October"></label>
+      <div class="field"><div class="labrow"><label for="nDetails">What do you need?</label>
+        <button class="dict" type="button" id="nDict" aria-pressed="false" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg><span>Dictate</span></button></div>
+        <textarea id="nDetails" maxlength="20000" placeholder="What you see, what you expected, and when you need it"></textarea></div>
+      <label class="field"><span>File <em>(optional, up to 10 MB)</em></span><input type="file" id="nFile"></label>
+      <label class="trap" aria-hidden="true">Website<input type="text" id="nSite" tabindex="-1" autocomplete="off"></label>
+      <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/></svg>
+        <span>Please don't include names or details of the people you serve. Describe the issue and I will look it up in your system.</span></p>
+      <p class="msg bad" id="nErr" role="alert" hidden></p>
+      <div class="row-btn"><button class="btn" id="nSend" type="submit">Send request</button></div>
+    </form>
+    <!-- talk it through: an assistant asks a few questions, then writes the request up -->
+    <div class="talk" id="nTalk" hidden>
+      <label class="field">Your work email<input type="email" id="tEmail" autocomplete="email" inputmode="email" required placeholder="name@yourorg.org"></label>
+      <div class="chat" id="tChat" aria-live="polite"></div>
+      <div class="say">
+        <textarea id="tText" maxlength="2000" aria-label="Your message" placeholder="Type here"></textarea>
+        <div class="acts"><button class="mic" type="button" id="tMic" aria-pressed="false" aria-label="Talk" hidden><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg></button>
+          <button class="btn" type="button" id="tSend">Send</button></div>
+      </div>
+      <p class="small" id="tHint" hidden></p>
+      <p class="msg test" id="tTest" hidden>Test mode: a scripted stand in answers instead of the assistant, and nothing is saved.</p>
+      <p class="msg bad" id="tErr" role="alert" hidden></p>
+      <div class="draft" id="tDraft" hidden>
+        <h2>Your request, ready to send</h2>
+        <label class="field">Short title<input type="text" id="dTitle" maxlength="200"></label>
+        <label class="field">What you need<textarea id="dDetails" maxlength="20000"></textarea></label>
+        <p class="msg bad" id="dErr" role="alert" hidden></p>
+        <div class="row-btn"><button class="btn" type="button" id="dSend">Send request</button><button class="btn ghost" type="button" id="dMore">Keep talking</button></div>
+      </div>
+      <p class="privacy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6z"/></svg>
+        <span>You are talking with an AI assistant that writes your request up for me. Please don't include names or details of the people you serve.</span></p>
+    </div>
+    <div class="done-box" id="nDone" hidden></div>
+  </section>
+
+  <!-- 2. my requests: emailed code first -->
+  <section class="panel" id="pMine" role="tabpanel" aria-labelledby="tMine" hidden>
+    <div id="mSign">
+      <h2>My requests</h2>
+      <p class="note" style="margin-bottom:14px">See your organization's requests and where each one stands. We email you a 6 digit code first, so only you can open them.</p>
+      <form id="fCode" novalidate>
+        <label class="field">Your work email<input type="email" id="mEmail" autocomplete="email" inputmode="email" required placeholder="name@yourorg.org"></label>
+        <div class="row-btn"><button class="btn" id="mAsk" type="submit">Email me a code</button></div>
+      </form>
+      <form id="fVerify" novalidate hidden>
+        <p class="note" id="mSent"></p>
+        <p class="msg test" id="mTest" hidden></p>
+        <label class="field">6 digit code<input class="code" type="text" id="mCode" inputmode="numeric" autocomplete="one-time-code" maxlength="6" required placeholder="000000"></label>
+        <div class="row-btn"><button class="btn" id="mOpen" type="submit">Open my requests</button><button class="btn link" id="mAgain" type="button">Use another email</button></div>
+      </form>
+      <p class="msg bad" id="mErr" role="alert" hidden style="margin-top:14px"></p>
+    </div>
+    <div id="mList" hidden></div>
+    <div id="mOne" hidden></div>
+  </section>
+
+  <p class="credit" id="credit" aria-live="polite"></p>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s==null?"":s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const STATUS_C={"Received":"--s-open","In progress":"--s-prog","Waiting on you":"--s-wait","On hold":"--s-hold","Done":"--s-done","Closed":"--s-skip"};
+const FIN={"Done":1,"Closed":1};
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const day=iso=>{const d=new Date(iso); return `${MON[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;};
+const store={get(k){try{return localStorage.getItem(k)}catch(e){return null}},set(k,v){try{localStorage.setItem(k,v)}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+
+/* server calls: google.script.run on the Apps Script page; the same page on the voice host posts to the web app */
+const API_URL="https://script.google.com/macros/s/AKfycbwvKlmRdiZTsXBnScsEVnUQu_InyosfLIInJ3rYAitH-K5UGl8fk1O0ovAaObtA07jy/exec";
+const VOICE_URL="https://coyokike.github.io/requests/";
+const onGas=!!(window.google&&google.script&&google.script.run);
+function call(fn,...args){
+  if(onGas) return new Promise((ok,bad)=>google.script.run.withSuccessHandler(ok).withFailureHandler(e=>bad(e))[fn](...args));
+  return fetch(API_URL,{method:"POST",body:JSON.stringify({fn,args})})
+    .then(r=>r.json(),()=>{ throw new Error("Could not reach the server. Please check your connection and try again."); })
+    .then(r=>{ if(r.err) throw new Error(r.err); return r.v; });
+}
+const errText=e=>String((e&&e.message)||e||"Something went wrong. Please try again.").replace(/^(Exception|Error):\s*/,"");
+function show(el,text){ el.textContent=text; el.hidden=!text; }
+function busy(btn,on,label){ btn.disabled=on; if(label) btn.textContent=label; }
+function readFile(input){
+  const f=input.files&&input.files[0];
+  if(!f) return Promise.resolve(null);
+  if(f.size>10*1024*1024) return Promise.reject(new Error("That file is too big. Please keep it under 10 MB."));
+  return new Promise((ok,bad)=>{ const r=new FileReader(); r.onload=()=>ok({name:f.name,b64:String(r.result).split(",")[1]||""}); r.onerror=()=>bad(new Error("Could not read that file.")); r.readAsDataURL(f); });
+}
+
+/* tabs */
+function tab(which){
+  const mine=which==="mine";
+  $("tNew").setAttribute("aria-selected",String(!mine)); $("tMine").setAttribute("aria-selected",String(mine));
+  $("pNew").hidden=mine; $("pMine").hidden=!mine;
+  if(mine) openMine();
+}
+$("tNew").onclick=()=>tab("new"); $("tMine").onclick=()=>tab("mine");
+
+/* 1. send a request */
+const lastEmail=store.get("cpEmail")||"";
+$("nEmail").value=lastEmail; $("mEmail").value=lastEmail;
+$("fNew").addEventListener("submit",async ev=>{
+  ev.preventDefault(); show($("nErr"),"");
+  const email=$("nEmail").value.trim(), title=$("nTitle").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)) return show($("nErr"),"Please enter your work email.");
+  if(!title) return show($("nErr"),"Please give your request a short title.");
+  busy($("nSend"),true,"Sendingâ€¦");
+  try{
+    const file=await readFile($("nFile"));
+    stopListening(true);
+    const r=await call("submitRequest",{email,title,details:$("nDetails").value,website:$("nSite").value,file});
+    sent(r,email);
+  }catch(e){ show($("nErr"),errText(e)); }
+  finally{ busy($("nSend"),false,"Send request"); }
+});
+function sent(r,email){
+  store.set("cpEmail",email); $("mEmail").value=email;
+  $("nMode").hidden=true; $("fNew").hidden=true; $("nTalk").hidden=true;
+  const d=$("nDone"); d.hidden=false;
+  if(r.internal){
+    d.innerHTML=`<b class="big">Please use the usual internal channel</b><p class="note">Requests from your organization come in through the internal process, so nothing was sent here.</p>
+      <div class="row-btn"><button class="btn ghost" type="button" id="nMore">Back</button></div>`;
+  }else{
+    d.innerHTML=`<b class="big">Request received</b><p class="note">Thank you. I will look at it and answer under My requests, where you can follow it and reply.</p>
+      ${r.dryRun?`<p class="msg test">Test mode: nothing was saved. It would come in as Open${r.org?`, tagged ${esc(r.org)}`:", with no organization yet"}.</p>`:""}
+      <div class="row-btn"><button class="btn" type="button" id="nMine">See my requests</button><button class="btn ghost" type="button" id="nMore">Send another</button></div>`;
+    $("nMine").onclick=()=>tab("mine");
+  }
+  $("nMore").onclick=()=>{ $("nTitle").value=""; $("nDetails").value=""; $("nFile").value=""; d.hidden=true; $("nMode").hidden=!agentOn; mode(talkMode?"talk":"write"); };
+}
+
+/* voice: the browser turns speech into text (dictation and talking) and reads the assistant's replies aloud.
+   Google's own page blocks the microphone, so there the voice parts stay hidden and point to the voice page. */
+const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+const micAllowed=(()=>{ try{ return !document.featurePolicy||document.featurePolicy.allowsFeature("microphone"); }catch(e){ return true; } })();
+let canTalk=!!SR&&micAllowed&&window.isSecureContext&&!onGas;
+let rec=null;
+function listen(opts){
+  stopListening();
+  const r=new SR(); rec=r; r.lang=navigator.language||"en-US"; r.interimResults=true; r.continuous=!!opts.continuous;
+  let final="";
+  r.onresult=e=>{ let interim=""; for(let i=e.resultIndex;i<e.results.length;i++){ const t=e.results[i][0].transcript; if(e.results[i].isFinal) final+=t; else interim+=t; } opts.onText(final,interim); };
+  r.onerror=e=>{ if(e.error==="not-allowed"||e.error==="service-not-allowed") micBlocked(); };
+  r.onend=()=>{ if(rec===r) rec=null; opts.onEnd&&opts.onEnd(final,!!r.cancelled); };
+  try{ r.start(); }catch(e){ rec=null; opts.onEnd&&opts.onEnd(""); }
+}
+function stopListening(cancel){ if(rec){ const r=rec; rec=null; r.cancelled=!!cancel; try{ r.stop(); }catch(e){} } }
+function micBlocked(){
+  canTalk=false; handsFree=false; $("nDict").hidden=true; $("tMic").hidden=true;
+  $("nDict").setAttribute("aria-pressed","false"); $("tMic").setAttribute("aria-pressed","false");
+  show($("tErr"),"The microphone is blocked for this page. Allow it in your browser's address bar, or type instead.");
+}
+const synth=window.speechSynthesis; let voice=null;
+function pickVoice(){
+  const vs=synth.getVoices(), lang=(navigator.language||"en-US").slice(0,2).toLowerCase(), mine=vs.filter(v=>String(v.lang).toLowerCase().startsWith(lang));
+  voice=mine.find(v=>/natural|neural/i.test(v.name))||mine.find(v=>/google/i.test(v.name))||mine.find(v=>v.default)||mine[0]||null;
+}
+if(synth){ pickVoice(); synth.onvoiceschanged=pickVoice; }
+function speak(text,then){
+  if(!synth||!handsFree) return then&&then();
+  synth.cancel();
+  const u=new SpeechSynthesisUtterance(text); if(voice){ u.voice=voice; u.lang=voice.lang; }
+  u.onend=()=>then&&then(); u.onerror=()=>then&&then();
+  synth.speak(u);
+}
+
+/* dictation into the details box */
+$("nDict").onclick=()=>{
+  const b=$("nDict");
+  if(b.getAttribute("aria-pressed")==="true") return stopListening();
+  const box=$("nDetails"), base=box.value.replace(/\s*$/,"");
+  b.setAttribute("aria-pressed","true"); b.querySelector("span").textContent="Stop";
+  listen({continuous:true, onText:(f,i)=>{ box.value=(base?base+" ":"")+f+i; },
+    onEnd:()=>{ b.setAttribute("aria-pressed","false"); b.querySelector("span").textContent="Dictate"; }});
+};
+
+/* write it or talk it through */
+let talkMode=false, agentOn=false;
+function mode(which){
+  talkMode=which==="talk";
+  $("mdWrite").setAttribute("aria-pressed",String(!talkMode)); $("mdTalk").setAttribute("aria-pressed",String(talkMode));
+  stopListening(true); if(synth) synth.cancel();
+  $("fNew").hidden=talkMode; $("nTalk").hidden=!talkMode; $("nDone").hidden=true;
+  if(talkMode) openTalk();
+}
+$("mdWrite").onclick=()=>mode("write"); $("mdTalk").onclick=()=>mode("talk");
+
+/* the conversation is kept for 6 hours on this device, like on the server, so it survives a reload */
+let talk=null, handsFree=false;
+function saveTalk(){ store.set("cpTalk",JSON.stringify(talk)); }
+function loadTalk(){ try{ const t=JSON.parse(store.get("cpTalk")||"null"); if(t&&t.until>Date.now()) return t; }catch(e){} store.del("cpTalk"); return null; }
+function newTalk(){ talk={convo:"",log:[{who:"Assistant",text:"Hi. What do you need help with? I'll ask a couple of quick questions, then write it up for you to send."}],draft:null,left:6,until:Date.now()+6*36e5}; }
+function bubble(c){
+  const d=document.createElement("div"); d.className="bub"+(c.me?" me":"")+(c.wait?" wait":"");
+  d.innerHTML=`<small>${esc(c.me?"You":"Assistant")}</small><p>${esc(c.text)}</p>`;
+  $("tChat").appendChild(d); $("tChat").scrollTop=$("tChat").scrollHeight; return d;
+}
+function drawTalk(){
+  $("tChat").innerHTML=""; talk.log.forEach(bubble);
+  const dr=talk.draft; $("tDraft").hidden=!dr;
+  if(dr){ $("dTitle").value=dr.title; $("dDetails").value=dr.details; }
+  const done=talk.left<=0; $("tText").disabled=done; $("tSend").disabled=done; $("tMic").disabled=done;
+  $("tText").placeholder=done?"Check the request below and press Send":canTalk?"Type, or tap the mic":"Type here";
+}
+function openTalk(){
+  if(!talk) talk=loadTalk(); if(!talk) newTalk();
+  if(!$("tEmail").value) $("tEmail").value=$("nEmail").value||store.get("cpEmail")||"";
+  $("tMic").hidden=!canTalk;
+  const h=$("tHint");
+  if(!canTalk&&onGas&&VOICE_URL){ h.innerHTML=`Want to talk out loud instead of typing? <a href="${VOICE_URL}" target="_blank" rel="noopener">Open the voice version of this page</a>.`; h.hidden=false; }
+  drawTalk();
+}
+async function sayToAssistant(text){
+  text=String(text||"").trim(); show($("tErr"),"");
+  if(!text) return;
+  const email=$("tEmail").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)){ handsFree=false; show($("tErr"),"Please enter your work email first."); $("tEmail").focus(); return; }
+  const me={who:"You",me:true,text}; talk.log.push(me); bubble(me); $("tText").value="";
+  const wait=bubble({who:"Assistant",text:"Thinkingâ€¦",wait:true});
+  busy($("tSend"),true); $("tMic").disabled=true;
+  try{
+    const r=await call("agentTurn",{email,text,convo:talk.convo,website:$("nSite").value});
+    wait.remove();
+    if(r.internal) return sent(r,email);
+    store.set("cpEmail",email);
+    talk.convo=r.convo; talk.left=r.turnsLeft; talk.log.push({who:"Assistant",text:r.reply});
+    if(r.ready) talk.draft={title:r.title,details:r.details};
+    $("tTest").hidden=!r.dryRun;
+    saveTalk(); drawTalk();
+    speak(r.reply,()=>{ if(handsFree&&!r.ready&&talk.left>0&&talkMode) talkListen(); });
+  }catch(e){
+    wait.remove(); talk.log.pop(); drawTalk(); $("tText").value=text; handsFree=false;
+    show($("tErr"),errText(e));
+  }finally{ busy($("tSend"),talk.left<=0); $("tMic").disabled=talk.left<=0; }
+}
+function talkListen(){
+  const m=$("tMic"); m.setAttribute("aria-pressed","true"); m.setAttribute("aria-label","Stop talking");
+  $("tText").placeholder="Listeningâ€¦";
+  listen({onText:(f,i)=>{ $("tText").value=f+i; },
+    onEnd:(f,cancelled)=>{ m.setAttribute("aria-pressed","false"); m.setAttribute("aria-label","Talk"); drawTalk();
+      if(cancelled) return;
+      const said=(f||$("tText").value).trim(); if(said) sayToAssistant(said); else handsFree=false; }});
+}
+$("tSend").onclick=()=>{ handsFree=false; stopListening(); sayToAssistant($("tText").value); };
+$("tText").addEventListener("keydown",e=>{ if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); $("tSend").click(); } });
+$("tMic").onclick=()=>{
+  if($("tMic").getAttribute("aria-pressed")==="true"){ stopListening(); return; }
+  if(synth) synth.cancel(); handsFree=true; show($("tErr"),""); talkListen();
+};
+$("tEmail").addEventListener("input",()=>{ $("nEmail").value=$("tEmail").value; });
+$("dMore").onclick=()=>{ $("tDraft").hidden=true; talk.draft=null; saveTalk(); $("tText").focus(); };
+$("dSend").onclick=async()=>{
+  show($("dErr"),"");
+  const email=$("tEmail").value.trim(), title=$("dTitle").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)) return show($("dErr"),"Please enter your work email.");
+  if(!title) return show($("dErr"),"Please give your request a short title.");
+  stopListening(true); if(synth) synth.cancel(); handsFree=false;
+  busy($("dSend"),true,"Sendingâ€¦");
+  try{
+    const r=await call("submitRequest",{email,title,details:$("dDetails").value,website:$("nSite").value,convo:talk.convo});
+    if(!r.internal){ store.del("cpTalk"); newTalk(); }
+    sent(r,email);
+  }catch(e){ show($("dErr"),errText(e)); }
+  finally{ busy($("dSend"),false,"Send request"); }
+};
+$("nDict").hidden=!canTalk;
+call("agentStatus").then(s=>{ if(s&&s.on){ agentOn=true; $("nMode").hidden=false; if(loadTalk()) mode("talk"); } }).catch(()=>{});
+
+/* 2. my requests */
+let sess=null, cache=null;
+try{ const s=JSON.parse(store.get("cpSess")||"null"); if(s&&s.until>Date.now()) sess=s; }catch(e){}
+function signedOut(msg){
+  sess=null; cache=null; store.del("cpSess");
+  $("mSign").hidden=false; $("mList").hidden=true; $("mOne").hidden=true;
+  const p=pending();
+  if(p) showVerify(p.email,false); else { $("fCode").hidden=false; $("fVerify").hidden=true; }
+  show($("mErr"),msg||"");
+}
+/* a code was emailed and still works: keep the code box up when they switch tabs or come back from their email */
+function pending(){ try{ const p=JSON.parse(store.get("cpPend")||"null"); if(p&&p.until>Date.now()) return p; }catch(e){} store.del("cpPend"); return null; }
+function showVerify(email,fresh){
+  $("fCode").hidden=true; $("fVerify").hidden=false; $("mEmail").value=email;
+  $("mSent").textContent=fresh?`We sent a code to ${email}. It works for 10 minutes.`:`We sent a code to ${email}. Type it here when it arrives.`;
+  if(fresh){ $("mCode").value=""; $("mCode").focus(); }
+}
+const ended=e=>/session has ended/i.test(errText(e));
+function openMine(){ if(!sess) return signedOut(); $("mSign").hidden=true; if(!cache) loadList(); else drawList(); }
+
+$("fCode").addEventListener("submit",async ev=>{
+  ev.preventDefault(); show($("mErr"),"");
+  const email=$("mEmail").value.trim();
+  if(!/^\S+@\S+\.\S+$/.test(email)) return show($("mErr"),"Please enter your work email.");
+  busy($("mAsk"),true,"Sendingâ€¦");
+  try{
+    const r=await call("requestCode",email);
+    store.set("cpEmail",email); store.set("cpPend",JSON.stringify({email,until:Date.now()+570000}));
+    showVerify(email,true);
+    $("mTest").hidden=!r.devCode; if(r.devCode) $("mTest").textContent=`Test mode: no email was sent. Your code is ${r.devCode}.`;
+  }catch(e){ show($("mErr"),errText(e)); }
+  finally{ busy($("mAsk"),false,"Email me a code"); }
+});
+$("mAgain").onclick=()=>{ store.del("cpPend"); $("mTest").hidden=true; $("fVerify").hidden=true; $("fCode").hidden=false; show($("mErr"),""); $("mEmail").focus(); };
+$("fVerify").addEventListener("submit",async ev=>{
+  ev.preventDefault(); show($("mErr"),"");
+  const code=$("mCode").value.replace(/\D/g,"");
+  if(code.length!==6) return show($("mErr"),"Please type the 6 digit code from the email.");
+  busy($("mOpen"),true,"Checkingâ€¦");
+  try{
+    const r=await call("verifyCode",$("mEmail").value.trim(),code);
+    sess={token:r.token,email:r.email,org:r.org,until:Date.now()+r.seconds*1000-30000};
+    store.set("cpSess",JSON.stringify(sess)); store.del("cpPend");
+    openMine();
+  }catch(e){ show($("mErr"),errText(e)); }
+  finally{ busy($("mOpen"),false,"Open my requests"); }
+});
+
+async function loadList(){
+  const box=$("mList"); box.hidden=false; $("mOne").hidden=true;
+  box.innerHTML=`<p class="empty">Loading your requestsâ€¦</p>`;
+  try{ cache=await call("myRequests",sess.token); drawList(); }
+  catch(e){ if(ended(e)) return signedOut(errText(e)); box.innerHTML=`<p class="msg bad">${esc(errText(e))}</p>`; }
+}
+
+/* trend: the last 6 months, opened and finished per month, with a labeled scale */
+function months6(){
+  const now=new Date(), out=[];
+  for(let i=5;i>=0;i--){ const d=new Date(now.getFullYear(),now.getMonth()-i,1); out.push({y:d.getFullYear(),m:d.getMonth(),opened:0,finished:0}); }
+  return out;
+}
+function chartSvg(ms){
+  const W=600,H=220,L=34,R=8,T=16,B=28, max=Math.max(1,...ms.map(x=>Math.max(x.opened,x.finished)));
+  const step=max<=4?1:max<=10?2:Math.ceil(max/5), top=Math.ceil(max/step)*step;
+  const y=v=>T+(H-T-B)*(1-v/top), gw=(W-L-R)/ms.length, bw=Math.min(26,gw*.3);
+  let g="";
+  for(let v=0;v<=top;v+=step) g+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${y(v)}" y2="${y(v)}"/><text x="${L-8}" y="${y(v)+4}" text-anchor="end">${v}</text>`;
+  ms.forEach((x,i)=>{
+    const cx=L+gw*i+gw/2;
+    [["opened","var(--accent)",-bw-2],["finished","var(--s-done)",2]].forEach(([k,c,dx])=>{
+      const v=x[k], yy=y(v), h=y(0)-yy;
+      if(v) g+=`<rect x="${cx+dx}" y="${yy}" width="${bw}" height="${h}" rx="3" fill="${c}"/><text class="v" x="${cx+dx+bw/2}" y="${yy-5}" text-anchor="middle">${v}</text>`;
+    });
+    g+=`<text x="${cx}" y="${H-8}" text-anchor="middle">${MON[x.m]}</text>`;
+  });
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Requests opened and finished per month">${g}</svg>`;
+}
+function drawList(){
+  const box=$("mList"); box.hidden=false; $("mOne").hidden=true;
+  const rs=cache.requests, ms=months6(), key=(y,m)=>y*12+m;
+  const idx=Object.fromEntries(ms.map((x,i)=>[key(x.y,x.m),i]));
+  const done=rs.filter(r=>FIN[r.status]&&r.closed);
+  rs.forEach(r=>{ const d=new Date(r.created), i=idx[key(d.getFullYear(),d.getMonth())]; if(i!=null) ms[i].opened++; });
+  done.forEach(r=>{ const d=new Date(r.closed), i=idx[key(d.getFullYear(),d.getMonth())]; if(i!=null) ms[i].finished++; });
+  const open=rs.filter(r=>!FIN[r.status]).length;
+  const avg=done.length?(done.reduce((s,r)=>s+(new Date(r.closed)-new Date(r.created)),0)/done.length/864e5):null;
+  const first=ms[0], last=ms[5];
+  const period=first.y===last.y?`${MON[first.m]} to ${MON[last.m]} ${last.y}`:`${MON[first.m]} ${first.y} to ${MON[last.m]} ${last.y}`;
+  const scope=cache.org?`${esc(cache.org)} requests`:"Your requests";
+  box.innerHTML=`
+    <div class="who"><p>Signed in as <b>${esc(cache.email)}</b>${cache.org?` Â· ${esc(cache.org)}`:""}</p><button class="btn link" type="button" id="mOut">Sign out</button></div>
+    <div class="kpis" style="margin:16px 0">
+      <div class="kpi"><b>${open}</b><span>Open now</span></div>
+      <div class="kpi"><b>${done.length}</b><span>Finished, all time</span></div>
+      <div class="kpi"><b>${avg==null?"None":avg<1?"<1":avg.toFixed(1)}</b><span>Average days to finish</span></div>
+    </div>
+    <h2>${scope} per month, ${period}</h2>
+    <div class="chart">${chartSvg(ms)}</div>
+    <div class="legend"><span><i style="background:var(--accent)"></i>Sent</span><span><i style="background:var(--s-done)"></i>Finished</span></div>
+    <p class="small" style="margin:8px 0 22px">Sent counts requests by the month they came in; finished counts them by the month they were marked done or closed. Average days to finish is from sent to finished, for finished requests.</p>
+    <h2>${scope}, newest first</h2>
+    <div class="list">${rs.length?rs.map(r=>`<button class="req" type="button" data-n="${r.n}"><b>${esc(r.title)}</b>
+      <span>Sent ${day(r.created)}${r.by&&r.by!=="You"?` by ${esc(r.by)}`:""}</span>
+      <span class="st" style="--c:var(${STATUS_C[r.status]||"--s-open"})"><i></i>${esc(r.status)}</span></button>`).join(""):`<p class="empty">No requests yet. Send one from New request.</p>`}</div>`;
+  $("mOut").onclick=()=>{ call("signOut",sess.token).catch(()=>{}); signedOut(); };
+  box.querySelectorAll(".req").forEach(b=>b.onclick=()=>openOne(Number(b.dataset.n)));
+}
+
+function thread(list){
+  return list.length?list.map(c=>`<div class="bub${c.me?" me":""}"><small>${esc(c.who)} Â· ${day(c.at)}</small><p>${esc(c.text)}</p></div>`).join(""):`<p class="small">No replies yet.</p>`;
+}
+async function openOne(n){
+  const one=$("mOne"); $("mList").hidden=true; one.hidden=false;
+  one.innerHTML=`<p class="empty">Openingâ€¦</p>`; scrollTo({top:$("pMine").offsetTop-16,behavior:"smooth"});
+  let r;
+  try{ r=await call("requestDetail",sess.token,n); }
+  catch(e){ if(ended(e)) return signedOut(errText(e)); one.innerHTML=`<button class="back" type="button" id="oBack">Back</button><p class="msg bad">${esc(errText(e))}</p>`; $("oBack").onclick=drawList; return; }
+  const canReply=r.open&&!FIN[r.status];
+  one.innerHTML=`
+    <button class="back" type="button" id="oBack"><svg viewBox="0 0 16 16" aria-hidden="true"><path d="M10 3L5 8l5 5"/></svg>All requests</button>
+    <h3>${esc(r.title)}</h3>
+    <div class="meta"><span class="st" style="--c:var(${STATUS_C[r.status]||"--s-open"})"><i></i>${esc(r.status)}</span>
+      <span>Sent ${day(r.created)}${r.by&&r.by!=="You"?` by ${esc(r.by)}`:""}</span>${r.closed?`<span>Finished ${day(r.closed)}</span>`:""}</div>
+    <p class="text">${esc(r.text)}</p>
+    <div class="thread" id="oThread">${thread(r.thread)}</div>
+    ${canReply?`<form id="fReply" novalidate>
+      <label class="field">Add a reply<textarea id="oText" maxlength="20000" placeholder="Answer a question or add more detail"></textarea></label>
+      <label class="field"><span>File <em>(optional, up to 10 MB)</em></span><input type="file" id="oFile"></label>
+      <p class="msg bad" id="oErr" role="alert" hidden></p><p class="msg test" id="oTest" hidden></p>
+      <div class="row-btn"><button class="btn" id="oSend" type="submit">Send reply</button></div></form>`
+      :`<p class="closed-note">This request is ${esc(r.status.toLowerCase())}. To ask for something more, send a new request.</p>`}`;
+  $("oBack").onclick=drawList;
+  if(!canReply) return;
+  $("fReply").addEventListener("submit",async ev=>{
+    ev.preventDefault(); show($("oErr"),""); busy($("oSend"),true,"Sendingâ€¦");
+    try{
+      const file=await readFile($("oFile"));
+      const res=await call("addReply",sess.token,n,$("oText").value,file);
+      if(res.dryRun) show($("oTest"),"Test mode: nothing was saved. Your reply would show here.");
+      else{ $("oThread").innerHTML=thread(res.thread); $("oText").value=""; $("oFile").value=""; }
+    }catch(e){ if(ended(e)) return signedOut(errText(e)); show($("oErr"),errText(e)); }
+    finally{ busy($("oSend"),false,"Send reply"); }
+  });
+}
+
+/* backdrop: a random painting from the picked country every 20 s (same list as the Work Cases page, work appropriate only) */
+const WM="https:/\/upload.wikimedia.org/wikipedia/commons/";
+const ART={
+  "France":[
+    ["thumb/5/59/Monet_-_Impression%2C_Sunrise.jpg/3840px-Monet_-_Impression%2C_Sunrise.jpg","center","Claude Monet","Impression, soleil levant","1872"],
+    ["thumb/a/a5/Claude_Monet_-_Springtime_-_Google_Art_Project.jpg/3840px-Claude_Monet_-_Springtime_-_Google_Art_Project.jpg","center","Claude Monet","Springtime","1872"],
+    ["thumb/7/78/Claude_Monet_-_The_Magpie_-_Google_Art_Project.jpg/3840px-Claude_Monet_-_The_Magpie_-_Google_Art_Project.jpg","center","Claude Monet","The Magpie","1869"],
+    ["6/61/Claude_Monet_-_The_Saint-Lazare_Station_-_Google_Art_Project.jpg","center","Claude Monet","The Saint-Lazare Station","1877"],
+    ["thumb/1/14/Claude_Monet_-_Water_Lilies_-_Google_Art_Project.jpg/3840px-Claude_Monet_-_Water_Lilies_-_Google_Art_Project.jpg","center","Claude Monet","Water Lilies","1922"],
+    ["thumb/8/8d/Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg/3840px-Pierre-Auguste_Renoir_-_Luncheon_of_the_Boating_Party_-_Google_Art_Project.jpg","center 30%","Pierre-Auguste Renoir","Luncheon of the Boating Party","1881"],
+    ["thumb/6/6f/Renoir%2C_Pierre-Auguste_-_Dance_at_Le_Moulin_de_la_Galette%2C_1876.jpg/3840px-Renoir%2C_Pierre-Auguste_-_Dance_at_Le_Moulin_de_la_Galette%2C_1876.jpg","center 30%","Pierre-Auguste Renoir","Dance at Le Moulin de la Galette","1876"],
+    ["thumb/0/07/Camille_Pissarro_-_The_Seine_at_Bougival_-_Google_Art_Project.jpg/3840px-Camille_Pissarro_-_The_Seine_at_Bougival_-_Google_Art_Project.jpg","center","Camille Pissarro","The Seine at Bougival","1870"],
+    ["f/ff/Camille_Pissarro_-_Boulevard_Montmartre%2C_Spring_-_Google_Art_Project.jpg","center","Camille Pissarro","Boulevard Montmartre, Spring","1897"]],
+  "Italy":[
+    ["thumb/9/90/Canaletto_-_The_Entrance_to_the_Grand_Canal%2C_Venice_-_Google_Art_Project.jpg/3840px-Canaletto_-_The_Entrance_to_the_Grand_Canal%2C_Venice_-_Google_Art_Project.jpg","center","Canaletto","The Entrance to the Grand Canal, Venice","1730"],
+    ["thumb/4/4e/Canaletto_%28Giovanni_Antonio_Canal%29_-_Bacino_di_San_Marco%2C_Venice_-_Google_Art_Project.jpg/3840px-Canaletto_%28Giovanni_Antonio_Canal%29_-_Bacino_di_San_Marco%2C_Venice_-_Google_Art_Project.jpg","center","Canaletto","Bacino di San Marco, Venice","1738"],
+    ["thumb/0/0b/Canaletto_-_The_Grand_Canal_in_Venice_with_the_Palazzo_Corner_Ca%27Grande_-_Google_Art_Project.jpg/3840px-Canaletto_-_The_Grand_Canal_in_Venice_with_the_Palazzo_Corner_Ca%27Grande_-_Google_Art_Project.jpg","center","Canaletto","The Grand Canal with the Palazzo Corner Ca' Grande","1723"],
+    ["thumb/7/73/Canaletto_-_Lock_near_Dolo_-_Google_Art_Project.jpg/3840px-Canaletto_-_Lock_near_Dolo_-_Google_Art_Project.jpg","center","Canaletto","Lock near Dolo","1763"],
+    ["thumb/0/0b/Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg/3840px-Sandro_Botticelli_-_La_nascita_di_Venere_-_Google_Art_Project_-_edited.jpg","center 30%","Sandro Botticelli","La nascita di Venere","c. 1485"],
+    ["thumb/2/25/Sandro_Botticelli_-_La_Primavera_-_Google_Art_Project.jpg/3840px-Sandro_Botticelli_-_La_Primavera_-_Google_Art_Project.jpg","center 30%","Sandro Botticelli","La Primavera","c. 1482"],
+    ["thumb/7/7f/Bernardo_Bellotto_-_View_of_Warsaw_from_the_Royal_Castle_-_Google_Art_Project.jpg/3840px-Bernardo_Bellotto_-_View_of_Warsaw_from_the_Royal_Castle_-_Google_Art_Project.jpg","center","Bernardo Bellotto","View of Warsaw from the Royal Castle","1773"]],
+  "Mexico":[
+    ["thumb/e/e2/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Valley_of_Mexico_from_the_Santa_Isabel_Mountain_Range_-_Google_Art_Project.jpg","center 35%","JosÃ© MarÃ­a Velasco","Valle de MÃ©xico desde el cerro de Santa Isabel","1875"],
+    ["thumb/a/aa/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Metlac_Ravine_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","CaÃ±ada de Metlac","1893"],
+    ["thumb/c/cf/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_Mexico_City_Alameda_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","La Alameda de MÃ©xico","1866"],
+    ["thumb/a/af/Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_Oaxaca_Cathedral_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","Catedral de Oaxaca","1887"],
+    ["thumb/3/3e/Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg/3840px-Jos%C3%A9_Mar%C3%ADa_Velasco_-_The_San_%C3%81ngel_Goatherd_-_Google_Art_Project.jpg","center","JosÃ© MarÃ­a Velasco","El cabrero de San Ãngel","1863"],
+    ["thumb/d/df/Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg/3840px-Saturnino_Herr%C3%A1n_-_The_offering_-_Google_Art_Project.jpg","center 30%","Saturnino HerrÃ¡n","La ofrenda","1913"],
+    ["thumb/b/b4/Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg/3840px-Juan_Cordero_-_Cristopher_Columbus_at_the_Court_of_the_Catholic_Monarchs_-_Google_Art_Project.jpg","center","Juan Cordero","CristÃ³bal ColÃ³n en la corte de los Reyes CatÃ³licos","1850"],
+    ["thumb/e/e2/Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg/3840px-Rodrigo_Guti%C3%A9rrez_-_The_Tlaxcalan_Senate_-_Google_Art_Project.jpg","center 30%","Rodrigo GutiÃ©rrez","El Senado de Tlaxcala","1875"],
+    ["thumb/d/dc/Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg/3840px-Agust%C3%ADn_Arrieta_-_Dining_Table_-_1840-1860.jpg","center","JosÃ© AgustÃ­n Arrieta","Dining Table (still life)","c. 1850"],
+    ["thumb/8/82/Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg/3840px-Eugenio_Landesio_-_The_Valley_of_Mexico_Seen_from_the_Tenayo_Hill_-_Google_Art_Project.jpg","center 40%","Eugenio Landesio","El Valle de MÃ©xico desde el cerro de Tenayo","1870"]],
+  "Netherlands":[
+    ["thumb/e/ea/Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg/3840px-Van_Gogh_-_Starry_Night_-_Google_Art_Project.jpg","center","Vincent van Gogh","The Starry Night","1889"],
+    ["thumb/3/3e/Irises-Vincent_van_Gogh.jpg/3840px-Irises-Vincent_van_Gogh.jpg","center","Vincent van Gogh","Irises","1889"],
+    ["b/ba/Vincent_van_Gogh_-_Wheatfield_with_crows_-_Google_Art_Project.jpg","center","Vincent van Gogh","Wheatfield with Crows","1890"],
+    ["thumb/a/aa/Vincent_van_Gogh_-_Houses_at_Auvers_-_Google_Art_Project.jpg/3840px-Vincent_van_Gogh_-_Houses_at_Auvers_-_Google_Art_Project.jpg","center","Vincent van Gogh","Houses at Auvers","1890"],
+    ["thumb/e/ed/View_of_Delft%2C_by_Johannes_Vermeer.jpg/3840px-View_of_Delft%2C_by_Johannes_Vermeer.jpg","center","Johannes Vermeer","View of Delft","c. 1660"],
+    ["thumb/3/3a/La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg/3840px-La_ronda_de_noche%2C_por_Rembrandt_van_Rijn.jpg","center 35%","Rembrandt","The Night Watch","1642"],
+    ["thumb/d/dd/Jacob_van_Ruisdael_-_The_Great_Forest_-_Google_Art_Project.jpg/3840px-Jacob_van_Ruisdael_-_The_Great_Forest_-_Google_Art_Project.jpg","center","Jacob van Ruisdael","The Great Forest","c. 1657"],
+    ["thumb/e/e5/Jacob_van_Ruisdael_-_The_Forest_Stream_-_Google_Art_Project.jpg/3840px-Jacob_van_Ruisdael_-_The_Forest_Stream_-_Google_Art_Project.jpg","center","Jacob van Ruisdael","The Forest Stream","c. 1660"]],
+  "Spain":[
+    ["thumb/b/b3/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Horse%E2%80%99s_Bath_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","El baÃ±o del caballo","1909"],
+    ["thumb/2/25/Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_The_Skipping_Rope_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","Saltando a la comba","1907"],
+    ["thumb/8/84/Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg/3840px-Joaqu%C3%ADn_Sorolla_y_Bastida_-_Capturing_the_moment_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","InstantÃ¡nea, Biarritz","1906"],
+    ["b/b7/Joaqu%C3%ADn_Sorolla_-_Children_Looking_for_Shellfish_-_Google_Art_Project.jpg","center","JoaquÃ­n Sorolla","NiÃ±os buscando mariscos","1919"],
+    ["thumb/e/ed/Goya_y_Lucientes%2C_Francisco_-_The_Threshing_Floor_-_Google_Art_Project.jpg/3840px-Goya_y_Lucientes%2C_Francisco_-_The_Threshing_Floor_-_Google_Art_Project.jpg","center","Francisco de Goya","La era","1786"],
+    ["thumb/d/dd/Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg/3840px-Francisco_de_Goya_-_Escena_de_Inquisici%C3%B3n_-_Google_Art_Project.jpg","center","Francisco de Goya","Auto de fe de la InquisiciÃ³n","1812"],
+    ["5/5f/Vel%C3%A1zquez_-_La_F%C3%A1bula_de_Aracne_o_Las_Hilanderas_%28Museo_del_Prado%2C_1657-58%29.jpg","center 30%","Diego VelÃ¡zquez","Las hilanderas","c. 1657"],
+    ["8/8e/Velazquez-The_Surrender_of_Breda.jpg","center 30%","Diego VelÃ¡zquez","La rendiciÃ³n de Breda","c. 1635"]],
+  "United Kingdom":[
+    ["thumb/9/94/Turner%2C_J._M._W._-_The_Fighting_T%C3%A9m%C3%A9raire_tugged_to_her_last_Berth_to_be_broken.jpg/3840px-Turner%2C_J._M._W._-_The_Fighting_T%C3%A9m%C3%A9raire_tugged_to_her_last_Berth_to_be_broken.jpg","center","J. M. W. Turner","The Fighting Temeraire","1839"],
+    ["thumb/b/be/Joseph_Mallord_William_Turner_-_The_Sun_of_Venice_Going_to_Sea_-_Google_Art_Project.jpg/3840px-Joseph_Mallord_William_Turner_-_The_Sun_of_Venice_Going_to_Sea_-_Google_Art_Project.jpg","center","J. M. W. Turner","The Sun of Venice Going to Sea","1843"],
+    ["thumb/b/b7/Joseph_Mallord_William_Turner_-_Dort_or_Dordrecht-_The_Dort_Packet-Boat_from_Rotterdam_Becalmed_-_Google_Art_Project.jpg/3840px-Joseph_Mallord_William_Turner_-_Dort_or_Dordrecht-_The_Dort_Packet-Boat_from_Rotterdam_Becalmed_-_Google_Art_Project.jpg","center","J. M. W. Turner","Dort, the Packet Boat from Rotterdam Becalmed","1818"],
+    ["thumb/5/5e/John_Constable_-_The_Hay_Wain_%281821%29.jpg/3840px-John_Constable_-_The_Hay_Wain_%281821%29.jpg","center","John Constable","The Hay Wain","1821"],
+    ["thumb/1/15/John_Constable_-_Wivenhoe_Park%2C_Essex_-_Google_Art_Project.jpg/3840px-John_Constable_-_Wivenhoe_Park%2C_Essex_-_Google_Art_Project.jpg","center","John Constable","Wivenhoe Park, Essex","1816"],
+    ["thumb/5/59/John_Constable_-_Flatford_Mill_-_Google_Art_Project_%282395103%29.jpg/3840px-John_Constable_-_Flatford_Mill_-_Google_Art_Project_%282395103%29.jpg","center","John Constable","Flatford Mill","c. 1811"],
+    ["thumb/4/45/John_Constable_-_Hampstead_Heath_-_Google_Art_Project_%282434562%29.jpg/3840px-John_Constable_-_Hampstead_Heath_-_Google_Art_Project_%282434562%29.jpg","center","John Constable","Hampstead Heath","c. 1827"]],
+  "United States":[
+    ["thumb/9/93/Thomas_Cole_-_A_View_of_the_Two_Lakes_and_Mountain_House%2C_Catskill_Mountains%2C_Morning_-_Google_Art_Project.jpg/3840px-Thomas_Cole_-_A_View_of_the_Two_Lakes_and_Mountain_House%2C_Catskill_Mountains%2C_Morning_-_Google_Art_Project.jpg","center","Thomas Cole","The Two Lakes and Mountain House, Catskill Mountains","1844"],
+    ["thumb/a/a2/Thomas_Cole_-_Dream_of_Arcadia_-_Google_Art_Project.jpg/3840px-Thomas_Cole_-_Dream_of_Arcadia_-_Google_Art_Project.jpg","center","Thomas Cole","Dream of Arcadia","c. 1838"],
+    ["thumb/d/d0/Albert_Bierstadt_-_A_Storm_in_the_Rocky_Mountains%2C_Mt._Rosalie_-_Google_Art_Project.jpg/3840px-Albert_Bierstadt_-_A_Storm_in_the_Rocky_Mountains%2C_Mt._Rosalie_-_Google_Art_Project.jpg","center","Albert Bierstadt","A Storm in the Rocky Mountains, Mt. Rosalie","1866"],
+    ["thumb/e/e6/Albert_Bierstadt_-_Valley_of_the_Yosemite_-_Google_Art_Project.jpg/3840px-Albert_Bierstadt_-_Valley_of_the_Yosemite_-_Google_Art_Project.jpg","center","Albert Bierstadt","Valley of the Yosemite","1864"],
+    ["thumb/8/8f/Frederic_Edwin_Church_-_Rainy_Season_in_the_Tropics_-_Google_Art_Project.jpg/3840px-Frederic_Edwin_Church_-_Rainy_Season_in_the_Tropics_-_Google_Art_Project.jpg","center","Frederic Edwin Church","Rainy Season in the Tropics","1866"],
+    ["thumb/d/da/Frederic_Edwin_Church_-_Aurora_Borealis_-_Google_Art_Project.jpg/3840px-Frederic_Edwin_Church_-_Aurora_Borealis_-_Google_Art_Project.jpg","center","Frederic Edwin Church","Aurora Borealis","1865"],
+    ["thumb/1/17/Winslow_Homer_-_The_Fog_Warning_-_Google_Art_Project.jpg/3840px-Winslow_Homer_-_The_Fog_Warning_-_Google_Art_Project.jpg","center","Winslow Homer","The Fog Warning","1885"],
+    ["thumb/2/21/Winslow_Homer_-_Sunlight_on_the_Coast_-_Google_Art_Project.jpg/3840px-Winslow_Homer_-_Sunlight_on_the_Coast_-_Google_Art_Project.jpg","center","Winslow Homer","Sunlight on the Coast","1890"],
+    ["thumb/d/d2/Winslow_Homer_-_Hudson_River_-_Google_Art_Project.jpg/3840px-Winslow_Homer_-_Hudson_River_-_Google_Art_Project.jpg","center","Winslow Homer","Hudson River","1892"]]
+};
+const ART_C=Object.keys(ART);
+let artC="Mexico"; { const c=store.get("cpArt"); if(ART[c]) artC=c; }
+const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+const paints=[...$("art").querySelectorAll(".pt")], credit=$("credit"), artSel=$("artC");
+artSel.innerHTML=ART_C.map(c=>`<option${c===artC?" selected":""}>${esc(c)}</option>`).join("");
+let pi=0, ai=-1, artSeq=0, artTimer=null;
+function showArt(){
+  const list=ART[artC], my=++artSeq;
+  let n=Math.floor(Math.random()*list.length);
+  if(list.length>1&&n===ai) n=(n+1+Math.floor(Math.random()*(list.length-1)))%list.length;
+  const [f,pos,who,title,year]=list[n], url=WM+f, img=new Image();
+  img.onload=()=>{
+    if(my!==artSeq) return;
+    ai=n;
+    const next=paints[(pi+1)%paints.length];
+    next.style.backgroundImage=`url("${url}")`; next.style.backgroundPosition=pos;
+    paints[pi].classList.remove("on"); next.classList.add("on"); pi=(pi+1)%paints.length;
+    credit.classList.add("out");
+    setTimeout(()=>{ if(my!==artSeq) return; credit.innerHTML=`<b>${esc(title)}</b>${esc(who)}, ${esc(year)}`; credit.classList.remove("out"); },reduce?0:900);
+  };
+  img.src=url;
+}
+function artLoop(){ clearInterval(artTimer); if(!reduce) artTimer=setInterval(()=>{ if(!document.hidden) showArt(); },20000); }
+artSel.addEventListener("change",()=>{ artC=artSel.value; ai=-1; store.set("cpArt",artC); showArt(); artLoop(); });
+showArt(); artLoop();
+
+/* came back to the page while waiting for the code: open straight on the code box */
+if(!sess&&pending()) tab("mine");
+
+</script>
+</body>
+</html>
